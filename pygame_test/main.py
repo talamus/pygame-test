@@ -1,44 +1,28 @@
-#!/usr/bin/env python
-""" pygame.examples.setmodescale
-
-On high resolution displays(4k, 1080p) and tiny graphics games (640x480)
-show up very small so that they are unplayable. SCALED scales up the window
-for you. The game thinks it's a 640x480 window, but really it can be bigger.
-Mouse events are scaled for you, so your game doesn't need to do it.
-
-Passing SCALED to pygame.display.set_mode means the resolution depends
-on desktop size and the graphics are scaled.
-"""
-
 import pygame as pg
 from color import Color
 
 pg.init()
-
 RES = (160, 120)
 FPS = 24
 clock = pg.time.Clock()
-
-print("desktops", pg.display.get_desktop_sizes())
 screen = pg.display.set_mode(RES, pg.SCALED | pg.RESIZABLE)
 
-# MAIN LOOP
+CO2_RES = (RES[0]//4, RES[1]//4)
+co2 = pg.Surface(CO2_RES, pg.SRCALPHA)
+co2_color = Color.blue
+co2.fill(co2_color + (0,))
 
-done = False
+def emit_and_average_co2(x, y):
+    global co2
+    tmp = pg.transform.smoothscale(co2, RES)
+    pg.draw.circle(tmp, co2_color, (x, y), 4)
+    pg.draw.rect(tmp, co2_color + (0,), (0, 0) + RES, 4)
+    co2 = pg.transform.smoothscale(tmp, CO2_RES)
 
+# Main loop
 i = 0
 j = 0
-
-r_name, r_flags = pg.display._get_renderer_info()
-print("renderer:", r_name, "flags:", bin(r_flags))
-for flag, name in [
-    (1, "software"),
-    (2, "accelerated"),
-    (4, "VSync"),
-    (8, "render to texture")]:
-    if flag & r_flags:
-        print(name)
-
+done = False
 while not done:
     for event in pg.event.get():
         if event.type == pg.KEYDOWN and event.key == pg.K_q:
@@ -51,15 +35,11 @@ while not done:
             pg.display._resize_event(event)
 
     i, j = pg.mouse.get_pos()
+    emit_and_average_co2(i, j)
 
     screen.fill(Color.tan)
-    pg.draw.circle(screen, Color.yellowgreen, (i, j), 5)
-    pg.draw.circle(screen, (0, 0, 0), (100, 100), 20)
-    pg.draw.circle(screen, (0, 0, 200), (0, 0), 10)
-    pg.draw.circle(screen, (200, 0, 0), (160, 120), 30)
-    pg.draw.line(screen, (250, 250, 0), (0, 120), (160, 0))
-    for i in range(16):
-        pg.draw.rect(screen, Color.palette[i], (8*i + 1, 1, 7, 16), 0, 3)
+    s = pg.transform.smoothscale(co2, RES)
+    screen.blit(s, (0, 0))
 
     pg.display.flip()
     clock.tick(FPS)
